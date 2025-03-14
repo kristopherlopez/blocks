@@ -1,7 +1,112 @@
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional, Callable, Union
 import time
 import threading
 import json
+import uuid
+import logging
+from datetime import datetime
+
+class Dashboard:
+    """Represents a monitoring dashboard."""
+    
+    def __init__(self, name: str, url: Optional[str] = None, description: str = ""):
+        self.id = str(uuid.uuid4())
+        self.name = name
+        self.url = url
+        self.description = description
+        self.panels: List[Dict[str, Any]] = []
+    
+    def add_panel(self, title: str, panel_type: str, metrics: List[str], 
+                 config: Optional[Dict[str, Any]] = None) -> None:
+        """Add a panel to the dashboard."""
+        panel = {
+            "id": str(uuid.uuid4()),
+            "title": title,
+            "type": panel_type,
+            "metrics": metrics,
+            "config": config or {}
+        }
+        self.panels.append(panel)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the dashboard to a dictionary representation."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "url": self.url,
+            "description": self.description,
+            "panels": self.panels
+        }
+
+class DynamicFlowMonitoring:
+    """Monitors dynamic flows."""
+    
+    def __init__(self):
+        self.track_plan_changes = True
+        self.store_reasoning = True
+        self.capture_decision_points = True
+        self.decision_detail_level = "comprehensive"  # minimal, comprehensive
+        self.history: List[Dict[str, Any]] = []
+    
+    def log_plan_change(self, flow_id: str, agent_id: str, old_plan: Dict[str, Any], 
+                       new_plan: Dict[str, Any], reason: str) -> None:
+        """Log a plan change in a dynamic flow."""
+        if not self.track_plan_changes:
+            return
+        
+        entry = {
+            "type": "plan_change",
+            "timestamp": time.time(),
+            "flow_id": flow_id,
+            "agent_id": agent_id,
+            "old_plan": old_plan,
+            "new_plan": new_plan
+        }
+        
+        if self.store_reasoning:
+            entry["reason"] = reason
+        
+        self.history.append(entry)
+    
+    def log_decision_point(self, flow_id: str, agent_id: str, decision: str, 
+                          options: List[Dict[str, Any]], reasoning: Optional[str] = None) -> None:
+        """Log a decision point in a dynamic flow."""
+        if not self.capture_decision_points:
+            return
+        
+        entry = {
+            "type": "decision_point",
+            "timestamp": time.time(),
+            "flow_id": flow_id,
+            "agent_id": agent_id,
+            "decision": decision
+        }
+        
+        if self.decision_detail_level == "comprehensive":
+            entry["options"] = options
+            if reasoning and self.store_reasoning:
+                entry["reasoning"] = reasoning
+        
+        self.history.append(entry)
+    
+    def get_history(self, flow_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Get the monitoring history, optionally filtered by flow ID."""
+        if not flow_id:
+            return self.history
+        
+        return [entry for entry in self.history if entry.get("flow_id") == flow_id]
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert the dynamic flow monitoring configuration to a dictionary representation."""
+        return {
+            "track_plan_changes": self.track_plan_changes,
+            "store_reasoning": self.store_reasoning,
+            "decision_points": {
+                "capture": self.capture_decision_points,
+                "detail_level": self.decision_detail_level
+            }
+        }
+    
 
 class Metric:
     """Base class for metrics."""
